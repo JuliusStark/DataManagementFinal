@@ -1,6 +1,4 @@
-#1kb+ ladder:
-# 10000,8000,6000,5000,4000,3000,2000,1500,1200,1000
-
+#!/usr/bin/env python3
 """
 Gel Electrophoresis Analysis Tool - Command Line Version
 
