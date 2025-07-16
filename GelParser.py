@@ -1,3 +1,5 @@
+#1kb+ bands:
+# 10000,8000,6000,5000,4000,3000,2000,1500,1200,1000
 #!/usr/bin/env python3
 """
 Gel Electrophoresis Analysis Tool - Command Line Version
@@ -31,10 +33,10 @@ plt.style.use('ggplot')
 warnings.filterwarnings('ignore')
 
 class GelAnalyzer:
-    """A class for analyzing gel electrophoresis images."""
+    """class for analyzing gel electrophoresis images"""
     
     def __init__(self):
-        """Initialize the gel analyzer with default settings."""
+        """initialize the gel analyzer with default settings"""
         self.image = None
         self.metadata = {
             'experiment_id': str(uuid.uuid4()),
@@ -53,7 +55,7 @@ class GelAnalyzer:
         self.used_band_ids = set()
 
     def get_next_band_id(self) -> str:
-        """Generate sequential band IDs without gaps."""
+        """generate sequential band IDs"""
         while True:
             new_id = f"B{self.band_counter}"
             if new_id not in self.used_band_ids:
@@ -63,11 +65,11 @@ class GelAnalyzer:
             self.band_counter += 1
 
     def initialize_output(self) -> None:
-        """Create output directory if it doesn't exist."""
+        """create output directory if missing"""
         os.makedirs(self.output_dir, exist_ok=True)
 
     def save_raw_data(self, lane_num: int) -> None:
-        """Save raw band data for a lane to CSV file."""
+        """save raw band data for a lane to CSV file"""
         lane = self.lanes[lane_num]
         current_bands = [
             {'band_id': bid, 'position': pos, 'lane': lane_num}
@@ -81,7 +83,7 @@ class GelAnalyzer:
             writer.writerows(current_bands)
 
     def load_raw_data(self) -> None:
-        """Load previously saved raw data from CSV files."""
+        """load raw data from CSV files"""
         max_id = 0
         for lane_num in self.lanes:
             lane_csv_path = f"{self.output_dir}/lane_{lane_num}_raw.csv"
@@ -111,7 +113,7 @@ class GelAnalyzer:
                 self.used_band_ids.update(lane['band_ids'])
 
     def load_image(self, file_path: str) -> bool:
-        """Load and normalize gel image."""
+        """load and normalize image"""
         try:
             self.image = io.imread(file_path)
             if len(self.image.shape) == 3:  # Convert to grayscale if RGB
@@ -126,7 +128,7 @@ class GelAnalyzer:
             return False
 
     def set_gel_dimensions(self) -> None:
-        """Interactive selection of gel dimensions."""
+        """interactive selection of gel dimensions"""
         print("\n=== Gel Dimensions Selection ===")
         print("Please select two points on the image:")
         print("1. First click at the top of the wells (y0)")
@@ -161,7 +163,7 @@ class GelAnalyzer:
             raise ValueError("Exactly two points must be selected")
 
     def detect_lanes(self, lane_width: int = 30, min_lanes: int = 7) -> int:
-        """Automatically detect lanes in the gel image."""
+        """automatically detect lanes in the image"""
         try:
             profile = np.mean(self.image, axis=0)
             smoothed = savgol_filter(profile, 101, 3)
@@ -200,7 +202,7 @@ class GelAnalyzer:
             return self.create_fallback_lanes(min_lanes, lane_width)
 
     def create_fallback_lanes(self, num_lanes: int, lane_width: int) -> int:
-        """Create evenly spaced lanes when automatic detection fails."""
+        """create evenly spaced lanes when automatic detection fails"""
         step = (self.image.shape[1] - lane_width) / (num_lanes - 1)
         for i in range(num_lanes):
             center = lane_width//2 + i * step
@@ -220,7 +222,7 @@ class GelAnalyzer:
         return num_lanes
 
     def plot_lane_detection(self) -> None:
-        """Visualize detected lanes on the gel image."""
+        """visualize detected lanes"""
         plt.figure(figsize=(15,5))
         plt.imshow(self.image, cmap='gray')
         for lane_num, lane in self.lanes.items():
@@ -234,7 +236,7 @@ class GelAnalyzer:
 
     def detect_bands(self, lane_num: int, top_cut: int = 0, 
                     min_prominence: float = 10, min_distance: int = 5) -> List[int]:
-        """Detect bands in a specific lane using peak finding."""
+        """detect bands in a specific lane using peak finding."""
         try:
             profile = self.lanes[lane_num]['profile'][top_cut:]
             peaks, properties = find_peaks(
@@ -269,7 +271,7 @@ class GelAnalyzer:
             return []
 
     def interactive_band_editor(self, lane_num: int) -> None:
-        """Provide interactive editor for adding/removing bands."""
+        """provide interactive editor for adding/removing bands"""
         print("\n=== Interactive Band Editor ===")
         print("Left click (+) to add a band")
         print("Right click to remove a band")
@@ -326,7 +328,7 @@ class GelAnalyzer:
         self.save_raw_data(lane_num)
 
     def calculate_rf(self, ladder_lane: int) -> None:
-        """Calculate Rf values for all bands relative to ladder."""
+        """calculate Rf values for all bands relative to ladder fit"""
         self.load_raw_data()
         
         if not self.metadata['ladder_info'].get('bands'):
@@ -352,7 +354,7 @@ class GelAnalyzer:
                 lane['estimated_sizes'] = []  # Will be calculated later during estimation
 
     def fit_linear_calibration(self, ladder_lane: int) -> None:
-        """Fit linear calibration curve using ladder bands."""
+        """fit linear calibration curve using ladder bands."""
         # Get ladder Rf values and known sizes
         x = np.array(self.lanes[ladder_lane]['rf_values'])
         y = np.log10(np.array(self.lanes[ladder_lane]['estimated_sizes']))
@@ -384,7 +386,7 @@ class GelAnalyzer:
         print(f"R² = {r_squared:.4f} (based on {len(x)} ladder bands)")
 
     def estimate_sizes(self) -> None:
-        """Estimate fragment sizes for all bands using calibration."""
+        """estimate fragment sizes for all bands using calibration."""
         if 'calibration' not in self.results:
             raise ValueError("Calibration must be performed first!")
         
@@ -401,7 +403,7 @@ class GelAnalyzer:
         self.prepare_final_data()
 
     def prepare_final_data(self) -> None:
-        """Prepare final data structure for export."""
+        """prepare final data structure for export"""
         self.final_data = []
         ladder_lane = self.results.get('calibration', {}).get('ladder_lane', -1)
         
@@ -422,7 +424,7 @@ class GelAnalyzer:
                 })
 
     def visualize_results(self) -> plt.Figure:
-        """Create comprehensive visualization of results."""
+        """visualization of results"""
         fig = plt.figure(figsize=(20, 14))
         
         # Main gel image
@@ -529,7 +531,7 @@ class GelAnalyzer:
         return fig
 
     def export_results(self) -> bool:
-        """Export all results to files."""
+        """export all results to files"""
         try:
             base_name = f"gel_{self.metadata['experiment_id']}"
             ladder_lane = self.results.get('calibration', {}).get('ladder_lane', -1)
@@ -589,7 +591,7 @@ class GelAnalyzer:
             return False
 
 def main():
-    """Main function to run the gel analysis workflow."""
+    """Und ab gehts"""
     print("\n=== Gel Electrophoresis Analysis Tool ===")
     print("This tool will guide you through analyzing your gel image.\n")
     
